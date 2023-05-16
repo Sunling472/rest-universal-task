@@ -1,0 +1,36 @@
+version: "3.9"
+services:
+  db:
+    image: postgres:latest
+    container_name: postgres
+    restart: always
+    ports:
+      - '5432:5432'
+    env_file:
+      - './.env'
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: pgadmin
+    restart: always
+    ports:
+      - '5050:5050'
+    env_file:
+      - './.env'
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+  fastapi:
+    build: ./
+    container_name: fastapi
+    restart: always
+    depends_on:
+      - db
+      - pgadmin
+    ports:
+      - "8989:8989"
+    command: sh -c 'alembic upgrade head && uvicorn main:get_app --factory --host 0.0.0.0 --port 8989'
+
+volumes:
+  postgres_data:
+  pgadmin_data:
