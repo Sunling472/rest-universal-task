@@ -35,8 +35,5 @@ class UsersController(BaseController):
 
     async def create_user(self, user: UserCreate) -> UserDB:
         user_hashed_password = self.create_hash_password(user.password)
-        return await self.create(
-            username=user.username,
-            password=user_hashed_password
-        )
+        return await self.create(username=user.username, password=user_hashed_password)
 

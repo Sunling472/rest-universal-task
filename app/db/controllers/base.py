@@ -50,23 +50,45 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
             ErrorTexts.not_allowed_error
         )
 
-    async def list(self, **kw) -> list[OUT_SCHEMA]:
-        query = select(self._model).filter(
-            self._model.deleted_at == 0
-        )
+    async def list(self, model: type[DB_MODEL] | None = None,
+                   db_schema: type[OUT_SCHEMA] | None = None,
+                   include_deleted: bool = False, **kw) -> list[OUT_SCHEMA]:
+        if model is not None:
+            query = select(model)
+            if include_deleted is False:
+                query = query.filter(
+                    model.deleted_at == 0
+                )
+        else:
+            query = select(self._model)
+            if include_deleted is False:
+                query = query.filter(
+                    self._model.deleted_at == 0
+                )
         if kw:
             query = query.filter_by(**kw)
         items = await self.session.execute(query)
         result: list[OUT_SCHEMA] = []
         for item in items.scalars():
-            result.append(self._db_schema.from_orm(item))
+            if db_schema is not None:
+                result.append(db_schema.from_orm(item))
+            else:
+                result.append(self._db_schema.from_orm(item))
         return result
 
-    async def get(self, item_id: str) -> DB_MODEL:
-        query = select(self._model).filter(
-            self._model.deleted_at == 0,
-            self._model.id == item_id
-        )
+    async def get(self, item_id: str, from_orm: bool = True,
+                  model: type[DB_MODEL] | None = None,
+                  db_schema: type[OUT_SCHEMA] | None = None) -> DB_MODEL | OUT_SCHEMA:
+        if model is not None:
+            query = select(model).filter(
+                model.deleted_at == 0,
+                model.id == item_id
+            )
+        else:
+            query = select(self._model).filter(
+                self._model.deleted_at == 0,
+                self._model.id == item_id
+            )
         item = await self.session.execute(query)
         item = item.scalars().one_or_none()
         if not item:
@@ -77,16 +99,25 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
                     item_id=item_id
                 )
             )
-        return self._db_schema.from_orm(item)
+        if from_orm is True:
+            if db_schema is not None:
+                return db_schema.from_orm(item)
+            else:
+                return self._db_schema.from_orm(item)
+        return item
 
     async def create(self, create_schema: IN_SCHEMA | None = None,
-                     from_orm: bool = True, **kwargs) -> DB_MODEL | OUT_SCHEMA:
+                     from_orm: bool = True,
+                     model: type[DB_MODEL] | None = None,
+                     db_schema: type[IN_SCHEMA] | None = None, **kwargs) -> DB_MODEL | OUT_SCHEMA:
         result: dict[str, Any] = {}
         for k, v in create_schema.dict().items() if create_schema else kwargs.items():
             if v is not None:
                 result[k] = v
-
-        item = self._model(**result)
+        if model is not None:
+            item = model(**result)
+        else:
+            item = self._model(**result)
         try:
             self.session.add(item)
             await self.session.commit()
@@ -99,13 +130,21 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
                 )
             )
         if from_orm:
-            return self._db_schema.from_orm(item)
+            if db_schema is not None:
+                return db_schema.from_orm(item)
+            else:
+                return self._db_schema.from_orm(item)
         return item
 
     async def edit(self, item_id: str,
-                   edit_schema: IN_SCHEMA | None = None, **kwargs) -> DB_MODEL:
+                   edit_schema: IN_SCHEMA | None = None,
+                   model: type[DB_MODEL] | None = None,
+                   db_schema: type[OUT_SCHEMA] | None = None, **kwargs) -> OUT_SCHEMA:
         result: dict[str, Any] = {}
-        item = await self.session.get(self._model, item_id)
+        if model is not None:
+            item = await self.session.get(model, item_id)
+        else:
+            item = await self.session.get(self._model, item_id)
         if (edit_schema and not kwargs) or (
                 not edit_schema and kwargs):
             self.session.expunge(item)
@@ -127,15 +166,22 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
                         details=ex.detail
                     )
                 )
-            return self._db_schema.from_orm(item)
+            if db_schema is not None:
+                return db_schema.from_orm(item)
+            else:
+                return self._db_schema.from_orm(item)
         else:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
                 ErrorTexts.database_not_params_error
             )
 
-    async def delete(self, item_id: str) -> None:
+    async def delete(self, item_id: str,
+                     model: type[DB_MODEL] | None = None,
+                     db_schema: type[OUT_SCHEMA] | None = None) -> None:
         await self.edit(
             item_id,
+            model=model,
+            db_schema=db_schema,
             deleted_at=int(datetime.utcnow().timestamp())
         )

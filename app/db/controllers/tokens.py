@@ -60,7 +60,7 @@ class TokensController(BaseController):
         ts_now = int(datetime.utcnow().timestamp())
         return ts < ts_now
 
-    async def check_token(self):
+    async def check_token(self) -> None:
         token_db = await self.get_by_token()
         if self._token_is_expired(token_db.expires_at):
             raise HTTPException(
@@ -100,10 +100,8 @@ class TokensController(BaseController):
                 status.HTTP_400_BAD_REQUEST,
                 ErrorTexts.bad_request_invalid_password
             )
-        token_db_model: Tokens = await super().create(
-            from_orm=False,
-            **TokenCreate(access_token=self._token_create(), user_id=user_db.id).dict()
-        )
+        token_db_model: Tokens = await super().create(from_orm=False, **TokenCreate(
+            access_token=self._token_create(), user_id=user_db.id).dict())
         return self._db_schema(
             id=token_db_model.id,
             created_at=token_db_model.created_at,

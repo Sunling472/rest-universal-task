@@ -23,3 +23,10 @@ class ColumnPermissions(dict[str, bool], Enum):
         PermissionKeys.is_creatable: False,
         PermissionKeys.is_updatable: False
     }
+
+
+class PricePeriodTypes(Enum):
+    Hour = 'Hour'
+    Day = 'Day'
+    Week = 'Week'
+    Month = 'Month'

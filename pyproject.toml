@@ -1,15 +1,12 @@
 [tool.poetry]
-name = "fast-template"
+name = "universal-task"
 version = "0.1.0"
 description = ""
 authors = ["sunling <arniss472@gmail.com>"]
 readme = "README.md"
-packages = [{include = "fast-template"}]
 
 [tool.poetry.dependencies]
 python = "^3.11"
-uvicorn = "^0.20.0"
-fastapi = "^0.92.0"
 pydantic = "^1.10.5"
 asyncpg = "^0.27.0"
 sqlalchemy = "^2.0.4"
@@ -20,6 +17,8 @@ python-multipart = "^0.0.6"
 pytest = "^7.3.1"
 httpx = "^0.24.0"
 rocketry = "^2.5.1"
+uvicorn = "^0.22.0"
+fastapi = "^0.95.2"
 
 
 [build-system]
