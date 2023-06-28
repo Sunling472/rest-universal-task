@@ -1,9 +1,6 @@
-# Fast Template
+# Universal Task Server
 **Features:**
-- Class based views
-- Inferring routers
-- Alembic Async integrated
-- Sqlalchemy Async ORM integrated
-- Base Oauth2 integrated
-- Docker compose integrated
-- Rocketry integrated
+- Task Managment
+- Project Managment
+- Price amount calculating
+- Report generation
