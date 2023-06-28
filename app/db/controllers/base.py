@@ -1,10 +1,11 @@
+from logging import getLogger
 from abc import abstractmethod
-from typing import Generic, TypeVar, Any
+from typing import Generic, TypeVar, Any, List
 from datetime import datetime
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
-from sqlalchemy import select
+from sqlalchemy import select, and_
 
 from fastapi.exceptions import HTTPException
 from fastapi import status
@@ -16,6 +17,9 @@ from app.common.errors import ErrorTexts
 IN_SCHEMA = TypeVar('IN_SCHEMA', bound=BaseSchema)
 OUT_SCHEMA = TypeVar('OUT_SCHEMA', bound=BaseSchemaOut)
 DB_MODEL = TypeVar('DB_MODEL')
+
+
+LOG = getLogger(__name__)
 
 
 class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
@@ -52,7 +56,11 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
 
     async def list(self, model: type[DB_MODEL] | None = None,
                    db_schema: type[OUT_SCHEMA] | None = None,
-                   include_deleted: bool = False, **kw) -> list[OUT_SCHEMA]:
+                   include_deleted: bool = False,
+                   start_date: int | None = None,
+                   end_date: int | None = None,
+                   **kw) -> list[OUT_SCHEMA]:
+
         if model is not None:
             query = select(model)
             if include_deleted is False:
@@ -67,13 +75,45 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
                 )
         if kw:
             query = query.filter_by(**kw)
+        if start_date and end_date:
+            query = query.filter(
+                and_(
+                    self._model.creater_at >= start_date,
+                    self._model.created_at <= end_date
+                )
+            )
+        elif start_date and not end_date:
+            query = query.filter(
+                and_(
+                    self._model.created_at >= start_date
+                )
+            )
+        elif not start_date and end_date:
+            query = query.filter(
+                and_(
+                    self._model.created_at <= end_date
+                )
+            )
         items = await self.session.execute(query)
         result: list[OUT_SCHEMA] = []
         for item in items.scalars():
-            if db_schema is not None:
-                result.append(db_schema.from_orm(item))
-            else:
-                result.append(self._db_schema.from_orm(item))
+            result.append(
+                db_schema.from_orm(item)
+                if db_schema is not None
+                else self._db_schema.from_orm(item)
+            )
+
+        return result
+
+    async def prepare_list(
+            self,
+            items: List[DB_MODEL],
+            db_schema: type[OUT_SCHEMA] | None = None) -> List[OUT_SCHEMA]:
+        if db_schema is None:
+            db_schema = self._db_schema
+        result: List[OUT_SCHEMA] = []
+        for item in items:
+            result.append(db_schema.from_orm(item))
         return result
 
     async def get(self, item_id: str, from_orm: bool = True,
@@ -123,10 +163,11 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
             await self.session.commit()
         except IntegrityError as ex:
             await self.session.rollback()
+            LOG.exception(ex)
             raise HTTPException(
                 status.HTTP_502_BAD_GATEWAY,
                 ErrorTexts.database_error.format(
-                    details=ex.detail
+                    details=ex.orig
                 )
             )
         if from_orm:

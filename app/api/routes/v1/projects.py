@@ -31,14 +31,6 @@ class ProjectsHandler(BaseHandler):
     async def get(self, item_id: str) -> ProjectDB:
         return await self.controller.get_project(item_id)
 
-    @router.get('/{item_id}/tasks', status_code=status.HTTP_200_OK)
-    async def get_tasks_by_project(self, item_id: str) -> List[TaskDB]:
-        return await self.controller.list_tasks_by_project(project_id=item_id)
-
-    @router.post('/{item_id}/tasks', status_code=status.HTTP_201_CREATED)
-    async def create_task_by_project(self, item_id: str, task: TaskCreate) -> TaskDB:
-        return await self.controller.create_task_by_project(item_id, task)
-
     @router.post('/', status_code=status.HTTP_201_CREATED)
     async def create(self, create_schema: ProjectCreate) -> ProjectDB:
         return await self.controller.create_project(create_schema)

@@ -22,15 +22,3 @@ class RegisterHandler(BaseHandler):
     @router.post('/', status_code=status.HTTP_201_CREATED)
     async def create(self, create_schema: UserCreate) -> UserDB:
         return await self.controller.create_user(create_schema)
-
-    async def list(self) -> None:
-        ...
-
-    async def get(self, item_id: str) -> None:
-        ...
-
-    async def edit(self, item_id: str, edit_schema) -> None:
-        ...
-
-    async def delete(self, item_id: str) -> None:
-        ...

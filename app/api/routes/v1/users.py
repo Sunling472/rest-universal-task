@@ -31,9 +31,6 @@ class UsersHandler(BaseHandler):
         await self.token_ctrl.check_token()
         return await self.controller.get(item_id)
 
-    async def create(self, create_schema: UserCreate) -> None:
-        ...
-
     @router.patch('/{item_id}', status_code=status.HTTP_200_OK)
     async def edit(self, item_id: str, edit_schema: UserEdit) -> UserDB:
         await self.token_ctrl.check_token()

@@ -28,13 +28,3 @@ class TokensHandler(BaseHandler):
     @router.get('/', status_code=status.HTTP_200_OK)
     async def list(self) -> list[TokenDB]:
         return await self.controller.list()
-
-    async def get(self, item_id: str) -> None:
-        super()._raise_not_allowed()
-
-    async def edit(self, item_id: str, edit_schema) -> None:
-        super()._raise_not_allowed()
-
-    async def delete(self, item_id: str) -> None:
-        super()._raise_not_allowed()
-

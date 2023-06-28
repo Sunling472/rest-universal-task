@@ -2,7 +2,7 @@ import sqlalchemy as sa
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
-from app.common.enums import PricePeriodTypes
+from app.common.enums import PricePeriodTypes, CurrencyTypes
 
 
 class Users(Base):
@@ -26,24 +26,37 @@ class Tasks(Base):
 
     title = sa.Column(sa.String, nullable=False)
     description = sa.Column(sa.Text, nullable=True)
-    project_id = sa.Column(sa.ForeignKey('projects.id', ondelete='SET NULL'), nullable=True)
+    project_id: str | None = sa.Column(
+        sa.ForeignKey('projects.id', ondelete='SET NULL'), nullable=True
+    )
     project = sa.orm.relationship('Projects', lazy='selectin')
-    task_time = sa.Column(sa.Integer, nullable=False, default=0)
 
 
 class Projects(Base):
     __tablename__ = 'projects'
 
-    user_id = sa.Column(sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    user_id: str | None = sa.Column(
+        sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False
+    )
     title = sa.Column(sa.String, nullable=False)
     description = sa.Column(sa.Text, nullable=True)
     price = sa.Column(sa.Numeric, nullable=False, default=0)
-    currency = sa.Column(sa.String, nullable=False, default='RUB')
-    price_period_type = sa.Column(
+    currency: str | None = sa.Column(sa.Enum(CurrencyTypes, name='currency_types'),
+                                     nullable=False, default=CurrencyTypes.RUB)  # type: ignore
+    price_period_type: PricePeriodTypes = sa.Column(
         sa.Enum(PricePeriodTypes, name='price_period_types'),
         nullable=False,
         default=PricePeriodTypes.Hour,
-
     )
 
+
+class Trackers(Base):
+    __tablename__ = 'trackers'
+
+    task_id = sa.Column(sa.ForeignKey('tasks.id', ondelete='CASCADE'), nullable=False)
+    user_id = sa.Column(sa.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    start_tracker_ts = sa.Column(sa.Integer, nullable=False)
+    end_tracker_ts = sa.Column(sa.Integer, nullable=True, default=0)
+    is_active = sa.Column(sa.Boolean, nullable=False, default=True)
+    tags = sa.Column(sa.Text, nullable=True)
 

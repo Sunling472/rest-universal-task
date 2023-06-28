@@ -1,10 +1,17 @@
+import typing as T
+
+from fastapi import HTTPException, status
+
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select, and_
 
 from app.db.controllers.base import BaseController
 from app.db.controllers.tokens import TokensController
 from app.db.schemas.project import ProjectCreate, ProjectEdit, ProjectDB
-from app.db.schemas.task import TaskDB, TaskCreate
+from app.db.schemas.task import TaskDB, TaskCreate, TaskCreateByProject
+from app.db.schemas.token import TokenDB
 from app.db.models import Projects, Tasks
+from app.common.errors import ErrorTexts
 
 
 class ProjectsController(BaseController):
@@ -36,16 +43,42 @@ class ProjectsController(BaseController):
     def _model(self) -> type[Projects]:
         return Projects
 
-    async def list_projects(self, **kw) -> list[ProjectDB]:
-        token = await self.token_ctrl.get_by_token()
+    async def list_projects(self, token: TokenDB | None = None, **kw) -> list[ProjectDB]:
+        if token is None:
+            token = await self.token_ctrl.get_by_token()
         return await super().list(user_id=token.user.id, **kw)
 
     async def list_tasks_by_project(self, project_id: str) -> list[TaskDB]:
+        token = await self.token_ctrl.get_by_token()
+        project = await self.get_project(project_id)
+        if token.user.id != project.user_id:
+            raise HTTPException(
+                status.HTTP_403_FORBIDDEN,
+                ErrorTexts.forbidden_error
+            )
         return await super().list(model=Tasks, db_schema=TaskDB, project_id=project_id)
 
-    async def create_task_by_project(self, project_id: str, task: TaskCreate) -> TaskDB:
-        task.project_id = project_id
-        return await super().create(create_schema=task, model=Tasks, db_schema=TaskDB)
+    async def get_user_id_by_project_id(self, project_id: str) -> str:
+        project = await self.get_project(project_id)
+        return project.user_id
+
+    async def list_project_id_by_user_id(self, user_id: str) -> T.List[str]:
+        query = select(Projects.id).filter(
+            and_(
+                Projects.deleted_at == 0,
+                Projects.user_id == user_id
+            )
+        )
+        result = await self.session.execute(query)
+        result = result.scalars().all()
+        return list(result)
+
+    async def create_task_by_project(self, project_id: str, task: TaskCreateByProject) -> TaskDB:
+        return await super().create(
+            create_schema=TaskCreate(project_id=project_id, **task.dict()),
+            model=Tasks,
+            db_schema=TaskDB
+        )
 
     async def get_project(self, item_id: str) -> ProjectDB:
         return await super().get(item_id)

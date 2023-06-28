@@ -8,6 +8,7 @@ from app.api.routes.api import api_router
 from app.common.config import get_config
 from app.common.tasks import rocketry
 
+
 CONFIG = get_config()
 
 

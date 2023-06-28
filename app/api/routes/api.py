@@ -2,7 +2,7 @@ from fastapi import APIRouter
 
 from app.api.routes.v1 import (
     users, token, me, register, projects,
-    tasks
+    tasks, trackers
 )
 
 
@@ -12,5 +12,7 @@ api_router.include_router(token.router, prefix='/token', tags=['token'])
 api_router.include_router(me.router, prefix='/me', tags=['me'])
 api_router.include_router(register.router, prefix='/register', tags=['register'])
 api_router.include_router(projects.router, prefix='/projects', tags=['projects'])
+api_router.include_router(tasks.tasks_by_project_router, prefix='/projects', tags=['tasks'])
 api_router.include_router(tasks.router, prefix='/tasks', tags=['tasks'])
+api_router.include_router(trackers.router, prefix='/trackers', tags=['trackers'])
 

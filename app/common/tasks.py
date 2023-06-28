@@ -1,5 +1,5 @@
 from rocketry import Rocketry
-from rocketry.conds import minutely
+
 
 rocketry = Rocketry(execution='thread')
 

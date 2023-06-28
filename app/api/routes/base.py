@@ -56,24 +56,3 @@ class BaseHandler:
         if self.token is not None:
             token_db = await self.token_ctrl.get_by_token()
             return token_db.user
-
-    @abstractmethod
-    async def list(self) -> type[list[BaseSchemaOut]]:
-        ...
-
-    @abstractmethod
-    async def get(self, item_id: str) -> type[BaseSchemaOut]:
-        ...
-
-    @abstractmethod
-    async def create(self, create_schema: type[BaseSchema]) -> type[BaseSchemaOut]:
-        ...
-
-    @abstractmethod
-    async def edit(self, item_id: str, edit_schema: type[BaseSchema]) -> type[BaseSchemaOut]:
-        ...
-
-    @abstractmethod
-    async def delete(self, item_id: str):
-        ...
-

@@ -30,3 +30,10 @@ class PricePeriodTypes(Enum):
     Day = 'Day'
     Week = 'Week'
     Month = 'Month'
+    Project = 'Project'
+
+
+class CurrencyTypes(Enum):
+    RUB = 'RUB'
+    USD = 'USD'
+    EUR = 'EUR'
