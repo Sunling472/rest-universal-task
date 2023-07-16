@@ -4,7 +4,6 @@ from fastapi import Depends, status
 from app.api.routes.base import BaseHandler
 from app.api.dependencies import oauth2_scheme
 from app.db.schemas.project import ProjectCreate, ProjectEdit, ProjectDB
-from app.db.schemas.task import TaskDB, TaskCreate
 from app.db.controllers.projects import ProjectsController
 
 from server_utils.cbv import cbv
