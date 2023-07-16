@@ -11,12 +11,13 @@ from fastapi.exceptions import HTTPException
 from fastapi import status
 
 from app.db.schemas.base import BaseSchema, BaseSchemaOut
+from app.db.base import Base
 from app.common.errors import ErrorTexts
 
 
 IN_SCHEMA = TypeVar('IN_SCHEMA', bound=BaseSchema)
 OUT_SCHEMA = TypeVar('OUT_SCHEMA', bound=BaseSchemaOut)
-DB_MODEL = TypeVar('DB_MODEL')
+DB_MODEL = TypeVar('DB_MODEL', bound=Base)
 
 
 LOG = getLogger(__name__)
@@ -65,13 +66,17 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
             query = select(model)
             if include_deleted is False:
                 query = query.filter(
-                    model.deleted_at == 0
+                    and_(
+                        model.deleted_at == 0
+                    )
                 )
         else:
             query = select(self._model)
             if include_deleted is False:
                 query = query.filter(
-                    self._model.deleted_at == 0
+                    and_(
+                        self._model.deleted_at == 0
+                    )
                 )
         if kw:
             query = query.filter_by(**kw)
@@ -119,18 +124,25 @@ class BaseController(Generic[IN_SCHEMA, OUT_SCHEMA, DB_MODEL]):
     async def get(self, item_id: str, from_orm: bool = True,
                   model: type[DB_MODEL] | None = None,
                   db_schema: type[OUT_SCHEMA] | None = None) -> DB_MODEL | OUT_SCHEMA:
+
+        item: DB_MODEL | OUT_SCHEMA
+
         if model is not None:
             query = select(model).filter(
-                model.deleted_at == 0,
-                model.id == item_id
+                and_(
+                    model.deleted_at == 0,
+                    model.id == item_id
+                )
             )
         else:
             query = select(self._model).filter(
-                self._model.deleted_at == 0,
-                self._model.id == item_id
+                and_(
+                    self._model.deleted_at == 0,
+                    self._model.id == item_id
+                )
             )
-        item = await self.session.execute(query)
-        item = item.scalars().one_or_none()
+        result = await self.session.execute(query)
+        item = result.scalars().one_or_none()
         if not item:
             raise HTTPException(
                 status.HTTP_400_BAD_REQUEST,
